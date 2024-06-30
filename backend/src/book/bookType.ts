@@ -1,10 +1,10 @@
-import { User } from "../user/userTypes";
+import { IUser } from "../user/userType";
 
-export interface Book {
+export interface IBook extends Document{
   _id: string;
   title: string;
   description: string;
-  author: User;
+  author: IUser;
   genre: string;
   coverImage: string;
   file: string;

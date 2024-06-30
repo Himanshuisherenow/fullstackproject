@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { Book } from "./bookTypes";
+import { IBook } from "./bookType";
 
-const bookSchema = new mongoose.Schema<Book>(
+const bookSchema = new mongoose.Schema<IBook>(
     {
         title: {
             type: String,
@@ -33,4 +33,4 @@ const bookSchema = new mongoose.Schema<Book>(
     { timestamps: true }
 );
 
-export default mongoose.model<Book>("Book", bookSchema);
+export const Book = mongoose.model<IBook>("Book", bookSchema);

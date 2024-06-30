@@ -6,6 +6,11 @@ interface ConfigType {
   databaseURL: string;
   allowOrigin : string;
   cloudinaryCloud : string;
+  cloudinaryApiKey : string;
+  cloudinarySecret : string;
+  jwtSecret : string;
+  env : string;
+  salt_length : string;
 
 }
 function Config():ConfigType{
@@ -16,12 +21,13 @@ function Config():ConfigType{
   const cloudinaryCloud = process.env.cloudinaryCloud;
   const cloudinaryApiKey = process.env.cloudinaryApiKey;
   const cloudinarySecret = process.env.cloudinarySecret;
-
+  const jwtSecret = process.env.JWT_SECRET;
+  const env = process.env.NODE_ENV;
+  const salt_length = process.env.SALT_LENGTH;
 
   if (!port) {
     throw new Error('Error: PORT is not defined.');
   }
- 
   if (!databaseURL) {
     throw new Error('Error: MONGO_URI is not defined.');
   }
@@ -34,9 +40,18 @@ function Config():ConfigType{
   if (!cloudinarySecret) {
     throw new Error('Error: cloudinaryCloud is not defined.');
   }
-  if(!allowOrigin){
+ if(!allowOrigin){
     throw new Error('Error: allowOrigin is not defined.');
- }
+ } 
+ if(!env){
+  throw new Error('Error: env is not defined.');
+} 
+ if(!jwtSecret){
+  throw new Error('Error: jwtSecret is not defined.');
+} 
+if(!salt_length){
+  throw new Error('Error:  is not defined.');
+} 
   return {
     port,
     databaseURL,
@@ -44,18 +59,19 @@ function Config():ConfigType{
     cloudinaryCloud,
     cloudinaryApiKey,
     cloudinarySecret,
+    jwtSecret,
+    env,
+    salt_length,
+    
   };
 }
+
 
 export const config : ConfigType = Config();
 
 // import {config as conf} from 'dotenv';
-import cloudinary from './cloudnary';
-
 // conf()
 // const _config = {
-
 //     port : process.env.PORT,
 // }
-
 // export const config = Object.freeze(_config); when you use the only object 

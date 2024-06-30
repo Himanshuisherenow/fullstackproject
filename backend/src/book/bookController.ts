@@ -3,9 +3,9 @@ import fs from "node:fs";
 import { Request, Response, NextFunction } from "express";
 import cloudinary from "../config/cloudinary";
 import createHttpError from "http-errors";
-import bookModel from "./bookModel";
-import { AuthRequest } from "../middlewares/authenticate";
-import userModel from "../user/userModel";
+import {Book} from "./bookModel";
+import { AuthRequest } from "../middleware/authenticate";
+import {User} from "../user/userModel";
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
     const { title, genre, description } = req.body;
@@ -45,7 +45,7 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
         );
         const _req = req as AuthRequest;
 
-        const newBook = await bookModel.create({
+        const newBook = await Book.create({
             title,
             description,
             genre,
@@ -70,7 +70,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     const { title, description, genre } = req.body;
     const bookId = req.params.bookId;
 
-    const book = await bookModel.findOne({ _id: bookId });
+    const book = await Book.findOne({ _id: bookId });
 
     if (!book) {
         return next(createHttpError(404, "Book not found"));
@@ -126,7 +126,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
         await fs.promises.unlink(bookFilePath);
     }
 
-    const updatedBook = await bookModel.findOneAndUpdate(
+    const updatedBook = await Book.findOneAndUpdate(
         {
             _id: bookId,
         },
@@ -150,7 +150,7 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
 
     try {
         // todo: add pagination.
-        const book = await bookModel.find().populate("author", "name");
+        const book = await Book.find().populate("author", "name");
         res.json(book);
     } catch (err) {
         return next(createHttpError(500, "Error while getting a book"));
@@ -165,7 +165,7 @@ const getSingleBook = async (
     const bookId = req.params.bookId;
 
     try {
-        const book = await bookModel
+        const book = await Book
             .findOne({ _id: bookId })
             // populate author field
             .populate("author", "name");
@@ -182,7 +182,7 @@ const getSingleBook = async (
 const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
     const bookId = req.params.bookId;
 
-    const book = await bookModel.findOne({ _id: bookId });
+    const book = await Book.findOne({ _id: bookId });
     if (!book) {
         return next(createHttpError(404, "Book not found"));
     }
@@ -211,7 +211,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
         resource_type: "raw",
     });
 
-    await bookModel.deleteOne({ _id: bookId });
+    await Book.deleteOne({ _id: bookId });
 
     return res.sendStatus(204);
 };

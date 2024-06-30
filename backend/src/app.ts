@@ -1,8 +1,8 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
-import globalErrorHandler from "./middlewares/globalErrorHandler";
-import userRouter from "./user/userRouter";
-import bookRouter from "./book/bookRouter";
+import globalErrorHandler from "./middleware/globalErrorHandler";
+import userRouter from "./user/userRoute";
+import bookRouter from "./book/bookRoute";
 import { config } from "./config/config";
 const app = express();
 
