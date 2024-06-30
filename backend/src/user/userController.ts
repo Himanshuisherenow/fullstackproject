@@ -3,7 +3,7 @@ import createHttpError from "http-errors";
 import {User} from "./userModel";
 import { sign } from "jsonwebtoken";
 import { config } from '../config/config';
-import { IUser } from "./userType";
+import { IUser } from './userType';
 import crypto from "crypto";
 
 
@@ -29,24 +29,44 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
     if (!name || !email || !password) {
       throw createHttpError(400, 'Name, email, and password are required');
     }
-
     const hashedPassword = await hashPassword(password);
 
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
-    });
+    }) ;
 
     const savedUser = await newUser.save();
     console.log(savedUser)
-
+      try {
+    // Token generation JWT
+    const token = sign({ sub: newUser._id }, config.jwtSecret as string, {
+      expiresIn: "7d",
+      algorithm: "HS256",
+    });
+    // Response
+    res.status(201).json({ accessToken: token });
+  } catch (err) {
+    return next(createHttpError(500, "Error while signing the jwt token"));
+  }
+  
+  
+    // Token generation JWT
+     const token : string  = sign({ sub: newUser._id }, config.jwtSecret as string, {
+      expiresIn: "7d",
+      algorithm: "HS256",
+    });
+   
+ const options = { 
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), httpOnly: true ,secure:true}; 
     res.status(201).json({
       message: 'User created successfully',
       user: {
         id: savedUser._id,
         name: savedUser.name,
         email: savedUser.email,
+      
       },
     });
   } catch (error) {
@@ -79,13 +99,24 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     if (hashedPassword !== user.password) {
       throw createHttpError(401, 'Invalid email or password');
     }
-
-    res.status(200).json({
+    const token = sign({ sub: user._id }, config.jwtSecret as string, {
+      expiresIn: "7d",
+      algorithm: "HS256",
+    });
+    const options = {
+      httpOnly: true,
+      secure: true,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    };
+    res.status(200)
+    .cookie( "acessetoken",token ,options )
+    .json({  
       message: 'Login successful',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+       
       },
     });
   } catch (error) {

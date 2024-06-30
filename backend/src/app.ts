@@ -15,9 +15,11 @@ const corsOptions = {
   Credential:false,
 };
   
-  // Use the CORS middleware
+  // Use the CORS middleware  
   app.use(cors(corsOptions));
-  
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true })); 
+
 
   app.get("/", (req, res, next) => {
     res.json({ message: "Welcome to elib apis" });
