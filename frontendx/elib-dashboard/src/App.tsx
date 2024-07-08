@@ -4,11 +4,14 @@ import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-
+  
 
   return (
     <>
-    <div>hello</div>
+      <div>
+      virat is king
+      </div>
+    
     </>
   )
 }
