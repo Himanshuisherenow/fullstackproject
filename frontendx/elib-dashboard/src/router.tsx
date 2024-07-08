@@ -5,7 +5,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import BooksPage from './pages/BooksPage';
 import AuthLayout from './layouts/AuthLayout';
-import CreateBook from './pages/CreateBook';
+import CreateBook from './pages/CreateBook.tsx';
 
 const router = createBrowserRouter([
     {
