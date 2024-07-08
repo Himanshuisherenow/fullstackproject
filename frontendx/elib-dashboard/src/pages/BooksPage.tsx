@@ -38,9 +38,8 @@ import { CirclePlus, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const BooksPage = () => {
-    // todo: add loading spinner, and error message
-    // @ts-ignore
-
+    // todo: add loading spinner, and error mesge
+    //@ts-expect-error ok
     const { data, isLoading, isError } = useQuery({
         queryKey: ['books'],
         queryFn: getBooks,
