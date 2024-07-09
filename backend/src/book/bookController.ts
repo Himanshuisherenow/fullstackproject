@@ -65,7 +65,7 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
       } catch (error) {
         return next(createHttpError(500, "error while unlinking the files from server's storage"))
       }
-console.log(newBook._id)
+
         res.status(201).json({ id: newBook._id });
     } catch (err) {
         console.log(err);

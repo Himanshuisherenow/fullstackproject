@@ -25,12 +25,18 @@ export const register = async (data: { name: string; email: string; password: st
 
 export const getBooks = async () => api.get('/api/books');
 
-export const createBook = async (data: FormData) =>
+export const createBook = async (data: FormData) =>{
     api.post('/api/books', data, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
-    });
-
+    });}
+    export const updateBook = async ({ id, data }: { id: string, data: FormData }) =>{
+    
+        api.patch(`/api/books/${id}`, data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });}
     export const deleteBook = async (bookId:string)=>{ return api.delete(`/api/books/${bookId}`)}
     export const getBook = async (id: string) => api.get(`/api/books/${id}`);

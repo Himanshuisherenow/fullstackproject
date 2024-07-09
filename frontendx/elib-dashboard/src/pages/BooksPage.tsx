@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table';
 import { deleteBook, getBooks } from '@/http/api';
 import { Book } from '@/types';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CirclePlus, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ProperDate } from '@/lib/utils';
@@ -47,13 +47,18 @@ const BooksPage = () => {
 		staleTime: 10000,
 	});
 
+    const queryClient = useQueryClient();
+
     const handleDeleteClick = (id:string) => {
         mutate(id)
         console.log(id)
     }
     const {mutate} = useMutation({
         mutationKey: ['books'],
-       
+       onSuccess:()=>{ 
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+
+       },
         mutationFn:deleteBook
         
       })

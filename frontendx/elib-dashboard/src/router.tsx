@@ -6,7 +6,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import BooksPage from './pages/BooksPage';
 import AuthLayout from './layouts/AuthLayout';
 import CreateBook from './pages/CreateBook.tsx';
-import EditBook from './pages/EditBook';
+import EditBook from './pages/EditBook.tsx';
 
 const router = createBrowserRouter([
 	{
@@ -27,9 +27,9 @@ const router = createBrowserRouter([
 			},
 			{
 				path: 'books/create',
-				element: <CreateBook />,
+				element: <CreateBook />,    
 			},
-			{
+            {
 				path: 'books/edit/:id',
 				element: <EditBook />,
 			},

@@ -65,13 +65,14 @@ const CreateBook = () => {
         mutationFn: createBook,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['books'] });
-        
+            console.log('Book created successfully');
             navigate('/dashboard/books');
         },
     });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-      
+        // Do something with the form values.
+        // ✅ This will be type-safe and validated.
         const formdata = new FormData();
         formdata.append('title', values.title);
         formdata.append('genre', values.genre);
@@ -80,8 +81,6 @@ const CreateBook = () => {
         formdata.append('file', values.file[0]);
 
         mutation.mutate(formdata);
-
-        console.log(values);
     }
 
     return (

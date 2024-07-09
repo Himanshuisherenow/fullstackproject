@@ -27,11 +27,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
-import { createBook, getBook } from '@/http/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LoaderCircle } from 'lucide-react';
+import { getBook, updateBook } from '@/http/api';
+import { useMutation ,useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useState } from 'react';
+//import { useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
 
 const formSchema = z.object({
 	title: z.string().min(2, {
@@ -46,58 +46,60 @@ const formSchema = z.object({
 	coverImage: z.instanceof(FileList).refine((file) => {
 		return file.length == 1;
 	}, 'Cover Image is required'),
+
+	file: z.instanceof(FileList).refine((filex) => {
+		return filex.length == 1;
+	}, 'Cover Image is required'),
 });
 
 const EditBook = () => {
 	const navigate = useNavigate();
 	const { id } = useParams();
-	const [coverImage, setCoverImage] = useState<string | null>(null);
-	useQuery({
-		queryKey: ['book', id],
-		queryFn: () => getBook(id!),
-		staleTime: 10000,
-	});
+	//const [coverImage, setCoverImage] = useState<string>('');
+    //const [file, setFile] = useState<string >('');
 
+console.log(id)
+	
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: async () => {
 			const res = await getBook(id!);
-			setCoverImage(res?.data?.coverImage ?? null);
 			return {
 				title: res?.data?.title ?? '',
 				genre: res?.data?.genre ?? '',
 				description: res?.data?.description ?? '',
-				coverImage: res?.data?.coverImage ?? null,
+				coverImage: res?.data?.coverImage,
+				file: res?.data?.file,
 			};
 		},
 	});
 
 	const coverImageRef = form.register('coverImage');
-
-	// Add Edit Book mutation
-	// const queryClient = useQueryClient();
-	// const mutation = useMutation({
-	// 	mutationFn: editBook,
-	// 	onSuccess: () => {
-	// 		queryClient.invalidateQueries({ queryKey: ['books'] });
-	// 		console.log('Book created successfully');
-	// 		navigate('/dashboard/books');
-	// 	},
-	// });
+	const fileRef = form.register('file');
+ 
+	const queryClient = useQueryClient();
+	const {mutate,isPending,} = useMutation({
+		mutationFn: updateBook,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['books'] });
+			console.log('Book edited successfully');
+			navigate('/dashboard/books');
+		},
+	});
 
 	function onSubmit(values: z.infer<typeof formSchema>) {
-		console.log('calling');
-		// Do something with the form values.
-		// ✅ This will be type-safe and validated.
+	
 		const formdata = new FormData();
+		console.log(values.title)
 		formdata.append('title', values.title);
 		formdata.append('genre', values.genre);
 		formdata.append('description', values.description);
 		formdata.append('coverImage', values.coverImage[0]);
-		console.log('values', values);
-		// mutation.mutate(formdata);
+		formdata.append('file', values.file[0]);
+		
 
-		console.log(values);
+		console.log(formdata)
+        mutate({ id: id?id:"", data: formdata });
 	}
 
 	return (
@@ -126,15 +128,10 @@ const EditBook = () => {
 									<span className='ml-2'>Cancel</span>
 								</Button>
 							</Link>
-							<Button
-								type='submit'
-								// disabled={mutation.isPending}
-							>
-								{/* {mutation.isPending && (
-									<LoaderCircle className='animate-spin' />
-								)} */}
-								<span className='ml-2'>Submit</span>
-							</Button>
+							<Button type="submit" disabled={isPending}>
+                                {isPending && <LoaderCircle className="animate-spin" />}
+                                <span className="ml-2">Submit</span>
+                            </Button>
 						</div>
 					</div>
 					<Card className='mt-6'>
@@ -187,30 +184,14 @@ const EditBook = () => {
 										</FormItem>
 									)}
 								/>
-								{coverImage ? (
-									<div className='flex flex-col '>
-										<h4 className='mb-2'>Cover Image</h4>
-										<div className='relative w-32 h-32'>
-											<img
-												src={coverImage}
-												alt=''
-												className='w-full h-full object-cover rounded'
-											/>
-											{/* Delete Button */}
-											{coverImage && (
-												<button
-													className='absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center'
-													onClick={() => setCoverImage(null)}
-												>
-													X
-												</button>
-											)}
-										</div>
-									</div>
-								) : (
+								
+								
 									<FormField
 										control={form.control}
 										name='coverImage'
+										defaultValue={coverImageRef}
+									
+
 										render={() => (
 											<FormItem>
 												<FormLabel>Cover Image</FormLabel>
@@ -225,7 +206,27 @@ const EditBook = () => {
 											</FormItem>
 										)}
 									/>
-								)}
+								
+
+									<FormField
+										control={form.control}
+										name='file'
+										defaultValue={fileRef}
+										render={() => (
+											<FormItem>
+												<FormLabel>file</FormLabel>
+												<FormControl>
+													<Input
+														type='file'
+														className='w-full'
+														{...fileRef}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+						
 							</div>
 						</CardContent>
 					</Card>
