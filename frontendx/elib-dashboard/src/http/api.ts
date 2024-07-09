@@ -3,7 +3,7 @@ import useTokenStore from '@/store';
 
 const api = axios.create({
     // todo: move this value to env variable.
-    baseURL: import.meta.env.VITE_PUBLIC_BACKEND_URL,
+    baseURL: 'http://localhost:7000',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -15,7 +15,7 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
-});
+}); 
 
 export const login = async (data: { email: string; password: string }) =>
     api.post('/api/users/login', data);
@@ -31,3 +31,6 @@ export const createBook = async (data: FormData) =>
             'Content-Type': 'multipart/form-data',
         },
     });
+
+    export const deleteBook = async (bookId:string)=>{ return api.delete(`/api/books/${bookId}`)}
+    export const getBook = async (id: string) => api.get(`/api/books/${id}`);

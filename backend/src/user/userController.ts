@@ -1,125 +1,89 @@
 import { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
-import {User} from "./userModel";
+import bcrypt from "bcrypt";
 import { sign } from "jsonwebtoken";
-import { config } from '../config/config';
-import { IUser } from './userType';
-import crypto from "crypto";
+import { config } from "../config/config";
+import { IUser } from "./userType";
+import { User } from './userModel';
 
+const createUser = async (req: Request, res: Response, next: NextFunction) => {
+  const { name, email, password } = req.body;
 
-function generateSalt(length = Number(config.salt_length) || 16): string {
-  const randomBytes = crypto.randomBytes(Math.ceil(length / 2));
-  return randomBytes.toString('hex').slice(0, length);
-}
-// Hash password
-function hashPassword(password: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    crypto.pbkdf2(password,config.salt_length, 100000, 64, 'sha512', (err, derivedKey) => {
-      if (err) reject(createHttpError(500, 'Password hashing failed'));
-      else resolve(derivedKey.toString('hex'));
-    });
-  });
-}
+  // Validation
+  if (!name || !email || !password) {
+    const error = createHttpError(400, "All fields are required");
+    return next(error);
+  }
 
-// Create User Controller
-export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+  // Database call.
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      throw createHttpError(400, 'Name, email, and password are required');
+    const user = await User.findOne({ email });
+    if (user) {
+      const error = createHttpError(
+        400,
+        "User already exists with this email."
+      );
+      return next(error);
     }
-    const hashedPassword = await hashPassword(password);
+  } catch (err) {
+    return next(createHttpError(500, "Error while getting user"));
+  }
 
-    const newUser = new User({
+  /// password -> hash
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  let newUser: IUser;
+  try {
+    newUser = await User.create({
       name,
       email,
       password: hashedPassword,
-    }) ;
+    });
+  } catch (err) {
+    return next(createHttpError(500, "Error while creating user."));
+  }
 
-    const savedUser = await newUser.save();
-    console.log(savedUser)
-      try {
+  try {
     // Token generation JWT
     const token = sign({ sub: newUser._id }, config.jwtSecret as string, {
       expiresIn: "7d",
       algorithm: "HS256",
     });
-    // Response
-    res.status(201).json({ accessToken: token });
+   console.log(newUser)
+    res.status(201).json({ accessToken: token ,...newUser });
   } catch (err) {
     return next(createHttpError(500, "Error while signing the jwt token"));
   }
-  
-  
-    // Token generation JWT
-     const token : string  = sign({ sub: newUser._id }, config.jwtSecret as string, {
-      expiresIn: "7d",
-      algorithm: "HS256",
-    });
-   
- const options = { 
-  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), httpOnly: true ,secure:true}; 
-    res.status(201).json({
-      message: 'User created successfully',
-      user: {
-        id: savedUser._id,
-        name: savedUser.name,
-        email: savedUser.email,
-      
-      },
-    });
-  } catch (error) {
-    console.log(error+"------------------------------------------");
-    // if (error.name === 'MongoError' && error.code === 11000) {
-    //   next(createHttpError(409, 'Email already exists'));
-    // } else {
-    //   next(createHttpError(500, 'User creation failed', { cause: error }));
-    // }
-  }
 };
 
-// Login User Controller
-export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email, password } = req.body;
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-      throw createHttpError(400, 'Email and password are required');
-    }
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      throw createHttpError(401, 'Invalid email or password');
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    if (hashedPassword !== user.password) {
-      throw createHttpError(401, 'Invalid email or password');
-    }
-    const token = sign({ sub: user._id }, config.jwtSecret as string, {
-      expiresIn: "7d",
-      algorithm: "HS256",
-    });
-    const options = {
-      httpOnly: true,
-      secure: true,
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    };
-    res.status(200)
-    .cookie( "acessetoken",token ,options )
-    .json({  
-      message: 'Login successful',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-       
-      },
-    });
-  } catch (error) {
-    next(error);
+  if (!email || !password) {
+    return next(createHttpError(400, "All fields are required"));
   }
+
+  // todo: wrap in try catch.
+  const user = await User.findOne({ email });
+  if (!user) {
+    return next(createHttpError(404, "User not found."));
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return next(createHttpError(400, "Username or password incorrect!"));
+  }
+
+  // todo: handle errors
+  // Create accesstoken
+  const token = sign({ sub: user._id }, config.jwtSecret as string, {
+    expiresIn: "7d",
+    algorithm: "HS256",
+  });
+
+  res.json({ accessToken: token });
 };
+
+export { createUser, loginUser };

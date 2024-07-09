@@ -26,12 +26,10 @@ export default async function connectDB(): Promise<void> {
     try {
 
       const connection = await mongoose.connect(uri as string, clientOptions);
-        mongoose.connection.on("connected",(err)=>{
-        console.log("database connected successfully",err)
+        mongoose.connection.on("connected",()=>{
+        console.log("database connected successfully",)
       })
-      mongoose.connection.on("error",()=>{
-        console.log("Failed to connect to database")
-      })
+     
       isConnected = true;
       //console.log(connection)
       console.log('Connected to MongoDB via Mongoose');
