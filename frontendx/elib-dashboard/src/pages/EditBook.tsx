@@ -43,39 +43,28 @@ const formSchema = z.object({
 	description: z.string().min(2, {
 		message: 'Description must be at least 2 characters.',
 	}),
-	coverImage: z.instanceof(FileList).refine((file) => {
-		return file.length == 1;
-	}, 'Cover Image is required'),
-
-	file: z.instanceof(FileList).refine((filex) => {
-		return filex.length == 1;
-	}, 'Cover Image is required'),
+	coverImage: z.union([z.string(), z.instanceof(File)]).optional(),
+	file: z.union([z.string(), z.instanceof(File)]).optional()
 });
+
 
 const EditBook = () => {
 	const navigate = useNavigate();
 	const { id } = useParams();
-	//const [coverImage, setCoverImage] = useState<string>('');
-    //const [file, setFile] = useState<string >('');
 
-console.log(id)
-	
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
-		defaultValues: async () => {
-			const res = await getBook(id!);
-			return {
-				title: res?.data?.title ?? '',
-				genre: res?.data?.genre ?? '',
-				description: res?.data?.description ?? '',
-				coverImage: res?.data?.coverImage,
-				file: res?.data?.file,
-			};
-		},
-	});
-
-	const coverImageRef = form.register('coverImage');
-	const fileRef = form.register('file');
+const form = useForm<z.infer<typeof formSchema>>({
+	resolver: zodResolver(formSchema),
+	defaultValues: async () => {
+	const res = await getBook(id!);
+	return {
+		title: res?.data?.title,
+		genre: res?.data?.genre,
+		description: res?.data?.description,
+		coverImage: res?.data?.coverImage,
+		file: res?.data?.file,
+	};
+	},
+  });
  
 	const queryClient = useQueryClient();
 	const {mutate,isPending,} = useMutation({
@@ -88,18 +77,24 @@ console.log(id)
 	});
 
 	function onSubmit(values: z.infer<typeof formSchema>) {
-	
 		const formdata = new FormData();
-		console.log(values.title)
 		formdata.append('title', values.title);
 		formdata.append('genre', values.genre);
 		formdata.append('description', values.description);
-		formdata.append('coverImage', values.coverImage[0]);
-		formdata.append('file', values.file[0]);
 		
+		if (values.coverImage instanceof File) {
+		formdata.append('coverImage', values.coverImage);
+		} else if (typeof values.coverImage === 'string') {
+		formdata.append('coverImageUrl', values.coverImage);
+		}
+		
+		if (values.file instanceof File) {
+		formdata.append('file', values.file);
+		} else if (typeof values.file === 'string') {
+		formdata.append('fileUrl', values.file);
+		}
 
-		console.log(formdata)
-        mutate({ id: id?id:"", data: formdata });
+		mutate({ id: id ? id : "", data: formdata });
 	}
 
 	return (
@@ -186,46 +181,67 @@ console.log(id)
 								/>
 								
 								
-									<FormField
-										control={form.control}
-										name='coverImage'
-										defaultValue={coverImageRef}
+								<FormField
+  control={form.control}
+  name='coverImage'
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Cover Image</FormLabel>
+      <FormControl>
+        <div>
+          
+          <Input
+            type='file'
+            className='w-full'
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                field.onChange(file);
+              }
+            }}
+          />
+		{typeof field.value === 'string' && (
+            <p>Current image: 
+				<img src={field.value} alt='' className='w-1/2 h-1/2 ' />
+			</p>
+          )}
+        </div>
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+<FormField
+  control={form.control}
+  name='file'
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>File</FormLabel>
+      <FormControl>
+        <div>
+         
+          <Input
+            type='file'
+            className='w-full'
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                field.onChange(file);
+              }
+            }}
+          />
+		{typeof field.value === 'string' && (
+      <></>
+          )}
+        </div>
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
 									
-
-										render={() => (
-											<FormItem>
-												<FormLabel>Cover Image</FormLabel>
-												<FormControl>
-													<Input
-														type='file'
-														className='w-full'
-														{...coverImageRef}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								
-
-									<FormField
-										control={form.control}
-										name='file'
-										defaultValue={fileRef}
-										render={() => (
-											<FormItem>
-												<FormLabel>file</FormLabel>
-												<FormControl>
-													<Input
-														type='file'
-														className='w-full'
-														{...fileRef}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
 						
 							</div>
 						</CardContent>

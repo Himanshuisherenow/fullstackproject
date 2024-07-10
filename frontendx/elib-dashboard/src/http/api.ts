@@ -39,4 +39,4 @@ export const createBook = async (data: FormData) =>{
             },
         });}
     export const deleteBook = async (bookId:string)=>{ return api.delete(`/api/books/${bookId}`)}
-    export const getBook = async (id: string) => api.get(`/api/books/${id}`);
+    export const getBook = async (id:string) => api.get(`/api/books/${id}`);
