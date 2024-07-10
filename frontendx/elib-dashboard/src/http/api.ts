@@ -9,6 +9,7 @@ const api = axios.create({
     },
 });
 
+
 api.interceptors.request.use((config) => {
     const token = useTokenStore.getState().token;
     if (token) {
@@ -17,8 +18,18 @@ api.interceptors.request.use((config) => {
     return config;
 }); 
 
+export const totalbooks = async () => {
+    try {
+      const response = await api.get('/api/books/count');
+      console.log('API response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
+  };
 export const login = async (data: { email: string; password: string }) =>
-    api.post('/api/users/login', data);
+     api.post('/api/users/login', data);
 
 export const register = async (data: { name: string; email: string; password: string }) =>
     api.post('/api/users/register', data);

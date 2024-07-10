@@ -67,7 +67,7 @@ const form = useForm<z.infer<typeof formSchema>>({
   });
  
 	const queryClient = useQueryClient();
-	const {mutate,isPending,} = useMutation({
+	const {mutate,isPending} = useMutation({
 		mutationFn: updateBook,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['books'] });

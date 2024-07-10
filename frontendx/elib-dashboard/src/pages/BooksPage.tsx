@@ -52,11 +52,50 @@ import { ProperDate } from "@/lib/utils";
 import { useState } from "react";
 
 const BooksPage = () => {
-  const { data } = useQuery({
+  const Query = useQuery({
     queryKey: ["books"],
     queryFn: getBooks,
     staleTime: 10000,
   });
+  
+  const [page, setPage] = useState(0)
+
+  const fetchProjects = (page = 0) => fetch('http://localhost:7000/api/books?page=' + page).then((res) => res.json())
+
+  const {
+    isLoading,
+    isError,
+    error,
+    data,
+    isFetching,
+    isPreviousData,
+  } = useQuery({
+    queryKey: ['projects', page],
+    queryFn: () => fetchProjects(page),
+    keepPreviousData : true
+  })
+
+
+ const handleDownload =async(url1:string) => {
+  try {
+    const response = await fetch( `https://res.cloudinary.com/ddv3bzws8/raw/upload/${url1}`);
+    console.log(url1)
+    
+    const blob   = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = "fileName";
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download error:', error);
+  }
+
+ }
+
   const [deletingBookId, setDeletingBookId] = useState("");
   const queryClient = useQueryClient();
 
@@ -118,7 +157,7 @@ const BooksPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.data.map((book: Book) => {
+              {Query.data?.data.map((book: Book) => {
                 return (
                   <TableRow
                     className={
@@ -147,6 +186,9 @@ const BooksPage = () => {
                     <TableCell className="hidden md:table-cell">
                       {ProperDate(book.createdAt)}
                     </TableCell>
+                    <TableCell><Button onClick={()=>{handleDownload(book.file)}} variant={'outline'}>
+									<span className='ml-2'>DownloadButton</span>
+								</Button></TableCell>
                     <TableCell>
                       {isPending && book._id == deletingBookId ? (
                         <LoaderCircle className="animate-spin" />
@@ -211,7 +253,38 @@ const BooksPage = () => {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-            Showing <strong>1-10</strong> of <strong>32</strong> products
+        <div>
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : isError ? (
+        <div>Error: {error.message}</div>
+      ) : (
+        <div>
+          {data?.map((data) => (
+            <p key={data.id}>{data.name}</p>
+          ))}
+        </div>
+      )}
+      <span>Current Page: {page + 1}</span>
+      <button
+        onClick={() => setPage(old => Math.max(old - 1, 0))}
+        disabled={page === 0}
+      >
+        Previous Page
+      </button>{' '}
+      <button
+        onClick={() => {
+          if (!isPreviousData && data?.data.hasMore) {
+            setPage(old => old + 1)
+          }
+        }}
+        // Disable the Next Page button until we know a next page is available
+        disabled={isPreviousData || !data?.data.hasMore}
+      >
+        Next Page
+      </button>
+      {isFetching ? <span> Loading...</span> : null}{' '}
+    </div>
           </div>
         </CardFooter>
       </Card>
