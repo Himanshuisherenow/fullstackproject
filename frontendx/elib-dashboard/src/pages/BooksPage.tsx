@@ -46,9 +46,10 @@ import {
 import { deleteBook, getBooks } from "@/http/api";
 import { Book } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CirclePlus, MoreHorizontal, Activity } from 'lucide-react';
+import { CirclePlus, LoaderCircle, MoreHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProperDate } from "@/lib/utils";
+import { useState } from "react";
 
 const BooksPage = () => {
   const { data } = useQuery({
@@ -56,7 +57,7 @@ const BooksPage = () => {
     queryFn: getBooks,
     staleTime: 10000,
   });
-
+  const [deletingBookId, setDeletingBookId] = useState("");
   const queryClient = useQueryClient();
 
   const { mutate, isPending } = useMutation({
@@ -119,7 +120,14 @@ const BooksPage = () => {
             <TableBody>
               {data?.data.map((book: Book) => {
                 return (
-                  <TableRow key={book._id}>
+                  <TableRow
+                    className={
+                      isPending && book._id == deletingBookId
+                        ? "opacity-40"
+                        : "  hover:bg-muted/50"
+                    }
+                    key={book._id}
+                  >
                     <TableCell className="hidden sm:table-cell">
                       <img
                         alt={book.title}
@@ -140,54 +148,60 @@ const BooksPage = () => {
                       {ProperDate(book.createdAt)}
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <Link to={`/dashboard/books/edit/${book._id}`}>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                          </Link>
-                          <AlertDialog 	>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Are you absolutely sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete your book and remove its
-                                  data from our servers.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => mutate(book._id)}
-                                  disabled={isPending}
+                      {isPending && book._id == deletingBookId ? (
+                        <LoaderCircle className="animate-spin" />
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <Link to={`/dashboard/books/edit/${book._id}`}>
+                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                            </Link>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
                                 >
-                                  {isPending ? "Deleting..." : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                  Delete
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you absolutely sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will
+                                    permanently delete your book and remove its
+                                    data from our servers.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => {
+                                      mutate(book._id);
+                                      setDeletingBookId(book._id);
+                                    }}
+                                  >
+                                    {isPending ? "Deleting..." : "Delete"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

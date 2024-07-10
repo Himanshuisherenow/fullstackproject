@@ -26,14 +26,14 @@ export const register = async (data: { name: string; email: string; password: st
 export const getBooks = async () => api.get('/api/books');
 
 export const createBook = async (data: FormData) =>{
-    api.post('/api/books', data, {
+   return api.post('/api/books', data, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
     });}
     export const updateBook = async ({ id, data }: { id: string, data: FormData }) =>{
     
-        api.patch(`/api/books/${id}`, data, {
+      return   api.patch(`/api/books/${id}`, data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },

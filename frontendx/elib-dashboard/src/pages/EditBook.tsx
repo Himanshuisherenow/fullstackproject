@@ -30,7 +30,7 @@ import { useForm } from 'react-hook-form';
 import { getBook, updateBook } from '@/http/api';
 import { useMutation ,useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-//import { useState } from 'react';
+
 import { LoaderCircle } from 'lucide-react';
 
 const formSchema = z.object({
@@ -93,7 +93,6 @@ const form = useForm<z.infer<typeof formSchema>>({
 		} else if (typeof values.file === 'string') {
 		formdata.append('fileUrl', values.file);
 		}
-
 		mutate({ id: id ? id : "", data: formdata });
 	}
 
