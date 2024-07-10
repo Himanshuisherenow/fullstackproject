@@ -5,6 +5,7 @@ import {
   deleteBook,
   getSingleBook,
   listBooks,
+  totalBooks,
   updateBook,
 } from "./bookController";
 import multer from "multer";
@@ -29,6 +30,8 @@ bookRouter.post(
   ]),
   createBook
 );
+
+bookRouter.get("/count",totalBooks)
 
 bookRouter.patch(
   "/:bookId",

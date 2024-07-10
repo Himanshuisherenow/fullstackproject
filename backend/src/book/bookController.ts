@@ -5,7 +5,6 @@ import cloudinary from "../config/cloudinary";
 import createHttpError from "http-errors";
 import { Book } from "./bookModel";
 import { AuthRequest } from "../middleware/authenticate";
-import { HttpError } from "http-errors";
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
     const { title, genre, description } = req.body;
@@ -226,4 +225,16 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
     return res.sendStatus(204);
 };
 
-export { createBook, updateBook, listBooks, getSingleBook, deleteBook };
+const totalBooks = async (req: Request, res: Response ,next: NextFunction)=> {
+
+    try {
+        const count = await Book.countDocuments();
+        console.log('Book count:', count);
+        res.json({ count });
+      } catch (error) {
+        return next(createHttpError(500, 'Error while counting books'));
+      }
+
+}
+
+export { createBook, updateBook, listBooks, getSingleBook, deleteBook ,totalBooks};
