@@ -70,7 +70,7 @@ const DashboardLayout = () => {
                                     }`;
                                 }}>
                                 <Package className="h-4 w-4" />
-                                Books{' '}
+                                Books
                             </NavLink>
                         </nav>
                     </div>

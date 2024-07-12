@@ -1,23 +1,20 @@
 import { Button } from "@/components/ui/button";
+import { CirclePlus, LoaderCircle, MoreHorizontal, Users } from "lucide-react";
 import {
-  Activity,
-  ArrowUpRight,
-  CreditCard,
-  DollarSign,
-  Users,
-} from "lucide-react";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -26,24 +23,71 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { totalbooks } from "@/http/api";
+import { deleteBook, getBooksAuthor, totalbooks } from "@/http/api";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DropdownMenuContent } from "@radix-ui/react-dropdown-menu";
+import { useState } from "react";
+
+import { ProperDate } from "@/lib/utils";
+import { Book } from "@/types";
+
 
 const HomePage = () => {
+  const shuffleArray = (array:Book[]):Book[]=>{
+    // for (let i = array.length - 1; i > 0; i--) {
+    //   const j = Math.floor(Math.random() * (i + 1));
+    //   [array[i], array[j]] = [array[j], array[i]];
+    // }
+    return array;
+  }
 
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['bookCount'],
-        queryFn: totalbooks,
-      });  
-      
+  const [deletingBookId, setDeletingBookId] = useState("");
+  const queryClient = useQueryClient();
 
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bookCount"],
+    queryFn: totalbooks,
+  });
 
+  const Query = useQuery<Book[], Error>({
+    queryKey: ["booksAuther"],
+    queryFn: getBooksAuthor,
+  });
 
+  const { mutate, isPending } = useMutation({
+    mutationKey: ["booksAuther"],
+    mutationFn: deleteBook,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booksAuther"] });
+    },
+  });
+  if (Query.isLoading) {
+    return <div>Loading......</div>;
+  }
+  
+  if (Query.error) {console.log(typeof Query.data)
+    return <div>Error: {Query.error.message}</div>;
+  }
+  
+  if (!Array.isArray(Query.data)) {
+    return <div>No books available</div>;
+  }
+ const shuffledBooks = Array.isArray(Query.data) 
+  ? shuffleArray(Query.data) 
+  : [];
+ 
   return (
     <>
-    <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+      <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <div className="flex min-h-screen w-full flex-col">
           <main className="flex flex-1 flex-col gap-4 md:gap-6">
             <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
+          
               <Card x-chunk="dashboard-01-chunk-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -67,263 +111,151 @@ const HomePage = () => {
               <Card x-chunk="dashboard-01-chunk-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Subscriptions
+                    Downloads
                   </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">+2350</div>
+                  <div className="text-2xl font-bold">3</div>
                   <p className="text-xs text-muted-foreground">
-                    +180.1% from last month
+                    till now total download happened on our site
                   </p>
                 </CardContent>
               </Card>
-              <Card x-chunk="dashboard-01-chunk-2">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sales</CardTitle>
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+12,234</div>
-                  <p className="text-xs text-muted-foreground">
-                    +19% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card x-chunk="dashboard-01-chunk-3">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Now
-                  </CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+573</div>
-                  <p className="text-xs text-muted-foreground">
-                    +201 since last hour
-                  </p>
-                </CardContent>
-              </Card>
+               <section>
+               <Link to="/dashboard/books/create">
+          <Button className="h-12 border">
+            <CirclePlus size={20} />
+            <span className="ml-4">Add book</span>
+          </Button>
+        </Link>
+               </section>
+              
             </div>
             <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
               <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-4">
-                <CardHeader className="flex flex-row items-center">
-                  <div className="grid gap-2">
-                    <CardTitle>Transactions</CardTitle>
-                    <CardDescription>
-                      Recent transactions from your store.
-                    </CardDescription>
-                  </div>
-                  <Button asChild size="sm" className="ml-auto gap-1">
-                    <Link to="#">
-                      View All
-                      <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead className="hidden xl:table-column">
-                          Type
-                        </TableHead>
-                        <TableHead className="hidden xl:table-column">
-                          Status
-                        </TableHead>
-                        <TableHead className="hidden xl:table-column">
-                          Date
-                        </TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <div className="font-medium">Liam Johnson</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            liam@example.com
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          Sale
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          <Badge className="text-xs" variant="outline">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                          2023-06-23
-                        </TableCell>
-                        <TableCell className="text-right">$250.00</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <div className="font-medium">Olivia Smith</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            olivia@example.com
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          Refund
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          <Badge className="text-xs" variant="outline">
-                            Declined
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                          2023-06-24
-                        </TableCell>
-                        <TableCell className="text-right">$150.00</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <div className="font-medium">Noah Williams</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            noah@example.com
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          Subscription
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          <Badge className="text-xs" variant="outline">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                          2023-06-25
-                        </TableCell>
-                        <TableCell className="text-right">$350.00</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <div className="font-medium">Emma Brown</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            emma@example.com
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          Sale
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          <Badge className="text-xs" variant="outline">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                          2023-06-26
-                        </TableCell>
-                        <TableCell className="text-right">$450.00</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <div className="font-medium">Liam Johnson</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            liam@example.com
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          Sale
-                        </TableCell>
-                        <TableCell className="hidden xl:table-column">
-                          <Badge className="text-xs" variant="outline">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                          2023-06-27
-                        </TableCell>
-                        <TableCell className="text-right">$550.00</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-              <Card x-chunk="dashboard-01-chunk-5">
-                <CardHeader>
-                  <CardTitle>Recent Sales</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-8">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="hidden h-9 w-9 sm:flex">
-                      <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                      <AvatarFallback>OM</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        Olivia Martin
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        olivia.martin@email.com
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">+$1,999.00</div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="hidden h-9 w-9 sm:flex">
-                      <AvatarImage src="/avatars/02.png" alt="Avatar" />
-                      <AvatarFallback>JL</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        Jackson Lee
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        jackson.lee@email.com
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">+$39.00</div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="hidden h-9 w-9 sm:flex">
-                      <AvatarImage src="/avatars/03.png" alt="Avatar" />
-                      <AvatarFallback>IN</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        Isabella Nguyen
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        isabella.nguyen@email.com
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">+$299.00</div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="hidden h-9 w-9 sm:flex">
-                      <AvatarImage src="/avatars/04.png" alt="Avatar" />
-                      <AvatarFallback>WK</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        William Kim
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        will@email.com
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">+$99.00</div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="hidden h-9 w-9 sm:flex">
-                      <AvatarImage src="/avatars/05.png" alt="Avatar" />
-                      <AvatarFallback>SD</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-1">
-                      <p className="text-sm font-medium leading-none">
-                        Sofia Davis
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        sofia.davis@email.com
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">+$39.00</div>
-                  </div>
-                </CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="hidden w-[100px] sm:table-cell">
+                        <span className="sr-only">Image</span>
+                      </TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Genre</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Author name
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Created at
+                      </TableHead>
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                   
+                    {shuffledBooks.map((book: Book) => {
+                      return (
+                        <TableRow
+                          className={
+                            isPending && book._id == deletingBookId
+                              ? "opacity-40"
+                              : "  hover:bg-muted/50"
+                          }
+                          key={book._id}
+                        >
+                          <TableCell className="hidden sm:table-cell">
+                            <img
+                              alt={book.title}
+                              className="aspect-square rounded-md object-cover"
+                              height="64"
+                              src={book.coverImage}
+                              width="64"
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {book.title}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{book.genre}</Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {book.author.name}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {ProperDate(book.createdAt)}
+                          </TableCell>
+
+                          <TableCell>
+                            {isPending && book._id == deletingBookId ? (
+                              <LoaderCircle className="animate-spin" />
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    aria-haspopup="true"
+                                    size="icon"
+                                    variant="outline"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Toggle menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  className="bg-white border w-20 rounded-lg  border-blue-100"
+                                  align="end"
+                                >
+                                  <DropdownMenuLabel className="border-b border  border-b-slate-900">Actions</DropdownMenuLabel>
+                                  <Link
+                                    to={`/dashboard/books/edit/${book._id}`}
+                                  >
+                                    <DropdownMenuItem >Edit</DropdownMenuItem>
+                                   
+                                  </Link>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem
+                                        onSelect={(e) => e.preventDefault()}
+                                      >
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Are you absolutely sure?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This action cannot be undone. This
+                                          will permanently delete your book and
+                                          remove its data from our servers.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => {
+                                            mutate(book._id);
+                                            setDeletingBookId(book._id);
+                                          }}
+                                        >
+                                          {isPending ? "Deleting..." : "Delete"}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </Card>
             </div>
           </main>

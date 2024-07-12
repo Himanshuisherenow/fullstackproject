@@ -34,7 +34,7 @@ const LoginPage = () => {
     const handleLoginSubmit = () => {
         const email = emailRef.current?.value;
         const password = passwordRef.current?.value;
-        console.log('data', { email, password });
+    
 
         if (!email || !password) {
             return alert('Please enter email and password');
