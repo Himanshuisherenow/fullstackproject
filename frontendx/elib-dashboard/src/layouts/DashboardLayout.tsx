@@ -1,3 +1,4 @@
+import ScrollToTopButton from '@/components/scoll';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -73,8 +74,9 @@ const DashboardLayout = () => {
                                 Books
                             </NavLink>
                         </nav>
+                        
                     </div>
-                  
+                  <div className='bottom-8 left-24 fixed '><ScrollToTopButton/></div>
                 </div>
             </div>
             <div className="flex flex-col">

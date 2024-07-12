@@ -70,7 +70,7 @@ const form = useForm<z.infer<typeof formSchema>>({
 	const {mutate,isPending} = useMutation({
 		mutationFn: updateBook,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['books'] });
+			queryClient.invalidateQueries({ queryKey: ['books',id] });
 			console.log('Book edited successfully');
 			navigate('/dashboard/books');
 		},
