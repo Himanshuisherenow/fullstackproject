@@ -72,8 +72,9 @@ const form = useForm<z.infer<typeof formSchema>>({
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['books',id] });
 			console.log('Book edited successfully');
-			navigate('/dashboard/books');
+			navigate('/dashboard/home');
 		},
+		
 	});
 
 	function onSubmit(values: z.infer<typeof formSchema>) {

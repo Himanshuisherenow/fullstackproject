@@ -6,7 +6,7 @@ import createHttpError from "http-errors";
 import { Book } from "./bookModel";
 import { AuthRequest } from "../middleware/authenticate";
 import mongoose from "mongoose";
-import { IBook } from "./bookType";
+import { IBook, PaginatedBookResponse } from "./bookType";
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
   const { title, genre, description } = req.body;
@@ -152,10 +152,21 @@ const listBooksAuthor = async (
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.userId;
-    const { type } = req.query;
-    let book: IBook[];
+    const {
+      type = "all",
+      skip = "0",
+      limit = "10",
+      loadMore = "false",
+    } = req.query;
+    const skipNumber = Math.max(0, parseInt(skip as string, 10) || 0);
+    const limitNumber = Math.max(1, parseInt(limit as string, 10) || 10);
+    const isLoadMore = loadMore === "true";
+
+    let query: mongoose.PipelineStage[];
+    let countQuery: mongoose.PipelineStage[];
+
     if (type === "user") {
-      book = await Book.aggregate([
+      query = [
         {
           $match: {
             author: new mongoose.Types.ObjectId(userId),
@@ -174,15 +185,17 @@ const listBooksAuthor = async (
         },
         {
           $addFields: {
+            id: { $toString: "$_id" },
             author: {
-              _id: "$authorDetails._id",
+              id: { $toString: "$authorDetails._id" },
               name: "$authorDetails.name",
             },
           },
         },
         {
           $project: {
-            _id: 1,
+            _id: 0,
+            id: 1,
             title: 1,
             description: 1,
             genre: 1,
@@ -192,16 +205,77 @@ const listBooksAuthor = async (
             createdAt: 1,
           },
         },
-      ]);
+        { $skip: skipNumber },
+        { $limit: limitNumber + 1 }, // Fetch one extra to determine if there are more
+      ];
+      countQuery = [
+        {
+          $match: {
+            author: new mongoose.Types.ObjectId(userId),
+          },
+        },
+        { $count: "total" },
+      ];
     } else if (type === "all") {
-      book = await Book.find({})
-        .populate("author", "name")
-        .select("_id title description genre coverImage file createdAt author");
+      query = [
+        {
+          $lookup: {
+            from: "users",
+            localField: "author",
+            foreignField: "_id",
+            as: "authorDetails",
+          },
+        },
+        {
+          $unwind: "$authorDetails",
+        },
+        {
+          $addFields: {
+            id: { $toString: "$_id" },
+            author: {
+              id: { $toString: "$authorDetails._id" },
+              name: "$authorDetails.name",
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            id: 1,
+            title: 1,
+            description: 1,
+            genre: 1,
+            author: 1,
+            coverImage: 1,
+            file: 1,
+            createdAt: 1,
+          },
+        },
+        { $skip: skipNumber },
+        { $limit: limitNumber + 1 },
+      ];
+      countQuery = [{ $count: "total" }];
     } else {
       return res.status(400).json({ error: "Invalid request type" });
     }
 
-    res.status(200).json(book);
+    const [items, [{ total } = { total: 0 }]] = await Promise.all([
+      Book.aggregate(query),
+      Book.aggregate(countQuery),
+    ]);
+
+    const hasMore = items.length > limitNumber;
+    const resultItems = items.slice(0, limitNumber);
+
+    const response: PaginatedBookResponse = {
+      items: resultItems as IBook[],
+      total: isLoadMore ? undefined : total,
+      skip: skipNumber,
+      limit: limitNumber,
+      hasMore,
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     next(error);
   }

@@ -26,54 +26,70 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {  getBooks } from "@/http/api";
+import { getBooks } from "@/http/api";
 import { Book } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ProperDate } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  skip: number;
+  hasMore: boolean;
+}
 
 const BooksPage = () => {
-  const Query = useQuery<Book[], Error>({
-    queryKey: ["books"],
-    queryFn: getBooks,
-    staleTime: 10000,
+  const [searchParams, setSearchParams] = useSearchParams({
+    skip: "0",
+    limit: "8",
   });
 
-  // const [page, setPage] = useState(0);
+  const skip = parseInt(searchParams.get("skip") || "0");
+  const limit = parseInt(searchParams.get("limit") || "8");
 
-  // const fetchProjects = (page = 0) =>
-  //   fetch("http://localhost:7000/api/books?page=" + page).then((res) =>
-  //     res.json()
-  //   );
+  const { data, isLoading, isError, error, isFetching } = useQuery<
+    PaginatedResponse<Book>,
+    Error
+  >({
+    queryKey: ["books", skip, limit],
+    queryFn: () => getBooks(skip, limit),
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
 
-  // const { isLoading, isError, error, data, isFetching, isPreviousData } = useQuery({
-  //     queryKey: ["projects", page],
-  //     queryFn: () => fetchProjects(page),
-  //     keepPreviousData: true,
-  //   });
+  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const currentPage = Math.floor(skip / limit) + 1;
+
+  const handleMove = (direction: "next" | "prev") => {
+    setSearchParams((prev) => {
+      const newSkip =
+        direction === "next" ? skip + limit : Math.max(skip - limit, 0);
+      prev.set("skip", newSkip.toString());
+      return prev;
+    });
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error.message}</div>;
 
   const handleDownload = async (url1: string) => {
     try {
-      const response = await fetch(
-       url1
-      );
+      const response = await fetch(url1);
 
-    
-
-      if (!Array.isArray(Query.data)) {
+      if (!Array.isArray(data?.items)) {
         return <div>No books available</div>;
       }
 
-     
-   
-      if (Query.isLoading) {
+      if (isLoading) {
         return <div>Loading...</div>;
       }
-      
-      if (Query.error) {
-        return <div>Error: {Query.error.message}</div>;
+
+      if (error) {
+        return <div>Error: {error}</div>;
       }
-      
- 
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -103,15 +119,12 @@ const BooksPage = () => {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        
       </div>
 
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Books</CardTitle>
-          <CardDescription>
-            Manage your books.
-          </CardDescription>
+          <CardDescription>Manage your books.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -134,80 +147,76 @@ const BooksPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Query.data && Query.data.map((book: Book) => {
-                return (
-                  <TableRow key={book._id}>
-                    <TableCell className="hidden sm:table-cell">
-                      <img
-                        alt={book.title}
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={book.coverImage}
-                        width="64"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{book.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{book.genre}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {book.author.name}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {ProperDate(book.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        onClick={() => {
-                          handleDownload(book.coverImage);
-                        }}
-                        variant={"outline"}
-                      >
-                        <span className="ml-2">Download</span>
-                      </Button>
-                    </TableCell>
-                  
-                  </TableRow>
-                );
-              })}
+              {data?.items &&
+                data.items.map((book: Book) => {
+                  return (
+                    <TableRow key={book.id}>
+                      <TableCell className="hidden sm:table-cell">
+                        <img
+                          alt={book.title}
+                          className="aspect-square rounded-md object-cover"
+                          height="64"
+                          src={book.coverImage}
+                          width="64"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {book.title}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{book.genre}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {book.author.name}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {ProperDate(book.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          onClick={() => {
+                            handleDownload(book.coverImage);
+                          }}
+                          variant={"outline"}
+                        >
+                          <span className="ml-2">Download</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         </CardContent>
         <CardFooter>
-          {/* <div className="text-xs text-muted-for  eground">
-            <div>
-              {isLoading ? (
-                <div>Loading...</div>
-              ) : isError ? (
-                <div>Error: {error.message}</div>
-              ) : (
-                <div>
-                  {data?.map((data) => (
-                    <p key={data.id}>{data.name}</p>
-                  ))}
-                </div>
-              )}
-              <span>Current Page: {page + 1}</span>
-              <button
-                onClick={() => setPage((old) => Math.max(old - 1, 0))}
-                disabled={page === 0}
-              >
-                Previous Page
-              </button>{" "}
-              <button
-                onClick={() => {
-                  if (!isPreviousData && data?.data.hasMore) {
-                    setPage((old) => old + 1);
-                  }
-                }}
-                // Disable the Next Page button until we know a next page is available
-                disabled={isPreviousData || !data?.data.hasMore}
-              >
-                Next Page
-              </button>
-              {isFetching ? <span> Loading...</span> : null}{" "}
+          <CardFooter className="mx-auto">
+            <div className="mx-auto w-full">
+              <div className="flex border-4 rounded-2xl ">
+                <Button
+                  onClick={() => handleMove("prev")}
+                  disabled={currentPage === 1}
+                  size="sm"
+                  className="bg-white ml-2 hover:bg-gray-100 text-gray-800"
+                >
+                  ← Prev
+                </Button>
+
+                <span className="text-center font-semibold text-slate-700 text-sm p-2">
+                  Page <span className=" border-slate-600">{currentPage} </span>
+                  of <span className=" border-slate-600">{totalPages}</span>
+                </span>
+                <Button
+                  onClick={() => handleMove("next")}
+                  disabled={currentPage === totalPages}
+                  size="sm"
+                  className="  text-gray-800  hover:bg-gray-100 bg-white mr-2"
+                >
+                  Next →
+                </Button>
+              </div>
+              {isFetching && <span>Loading...</span>}
             </div>
-          </div> */}
+          </CardFooter>
         </CardFooter>
       </Card>
     </div>

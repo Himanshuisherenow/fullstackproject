@@ -11,10 +11,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -35,17 +41,17 @@ import { useState } from "react";
 
 import { ProperDate } from "@/lib/utils";
 import { Book } from "@/types";
-
+import { PaginatedResponse } from "./BooksPage";
 
 const HomePage = () => {
-  const shuffleArray = (array:Book[]):Book[]=>{
+  const shuffleArray = (array: Book[]): Book[] => {
     // for (let i = array.length - 1; i > 0; i--) {
     //   const j = Math.floor(Math.random() * (i + 1));
     //   [array[i], array[j]] = [array[j], array[i]];
     // }
     return array;
-  }
-
+  };
+ 
   const [deletingBookId, setDeletingBookId] = useState("");
   const queryClient = useQueryClient();
 
@@ -54,10 +60,26 @@ const HomePage = () => {
     queryFn: totalbooks,
   });
 
-  const Query = useQuery<Book[], Error>({
-    queryKey: ["booksAuther"],
-    queryFn: getBooksAuthor,
+  const {
+    data:boooks,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+   error : eerror
+  } = useInfiniteQuery({
+    queryKey: ['books'],
+    queryFn: getBooksAuthor(skip , limit , loadMore),
+    getNextPageParam: (lastPage, pages) => {
+      if (lastPage.hasMore) {
+        return pages.length * 10;
+      }
+      return undefined;
+    },
   });
+
+  
+  if (status == 'error') return <div>Error fetching books</div>;
 
   const { mutate, isPending } = useMutation({
     mutationKey: ["booksAuther"],
@@ -66,28 +88,26 @@ const HomePage = () => {
       queryClient.invalidateQueries({ queryKey: ["booksAuther"] });
     },
   });
-  if (Query.isLoading) {
-    return <div>Loading......</div>;
+
+
+  if (error) {
+    // console.log(typeof Query.data?.items);
+    return <div>Error: {eerror}</div>;
   }
-  
-  if (Query.error) {console.log(typeof Query.data)
-    return <div>Error: {Query.error.message}</div>;
-  }
-  
-  if (!Array.isArray(Query.data)) {
+
+  if (!Array.isArray(boooks?.pages)) {
     return <div>No books available</div>;
   }
- const shuffledBooks = Array.isArray(Query.data) 
-  ? shuffleArray(Query.data) 
-  : [];
- 
+  const shuffledBooks = Array.isArray(boooks.pages)
+    ? shuffleArray(boooks.items)
+    : [];
+  console.log(shuffledBooks);
   return (
     <>
       <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <div className="flex min-h-screen w-full flex-col">
           <main className="flex flex-1 flex-col gap-4 md:gap-6">
             <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
-          
               <Card x-chunk="dashboard-01-chunk-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -122,15 +142,14 @@ const HomePage = () => {
                   </p>
                 </CardContent>
               </Card>
-               <section>
-               <Link to="/dashboard/books/create">
-          <Button className="h-12 border">
-            <CirclePlus size={20} />
-            <span className="ml-4">Add book</span>
-          </Button>
-        </Link>
-               </section>
-              
+              <section>
+                <Link to="/dashboard/books/create">
+                  <Button className="h-12 border">
+                    <CirclePlus size={20} />
+                    <span className="ml-4">Add book</span>
+                  </Button>
+                </Link>
+              </section>
             </div>
             <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
               <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-4">
@@ -154,16 +173,15 @@ const HomePage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                   
                     {shuffledBooks.map((book: Book) => {
                       return (
                         <TableRow
                           className={
-                            isPending && book._id == deletingBookId
+                            isPending && book.id == deletingBookId
                               ? "opacity-40"
                               : "  hover:bg-muted/50"
                           }
-                          key={book._id}
+                          key={book.id}
                         >
                           <TableCell className="hidden sm:table-cell">
                             <img
@@ -188,7 +206,7 @@ const HomePage = () => {
                           </TableCell>
 
                           <TableCell>
-                            {isPending && book._id == deletingBookId ? (
+                            {isPending && book.id == deletingBookId ? (
                               <LoaderCircle className="animate-spin" />
                             ) : (
                               <DropdownMenu>
@@ -206,12 +224,11 @@ const HomePage = () => {
                                   className="bg-white border w-20 rounded-lg  border-blue-100"
                                   align="end"
                                 >
-                                  <DropdownMenuLabel className="border-b border  border-b-slate-900">Actions</DropdownMenuLabel>
-                                  <Link
-                                    to={`/dashboard/books/edit/${book._id}`}
-                                  >
-                                    <DropdownMenuItem >Edit</DropdownMenuItem>
-                                   
+                                  <DropdownMenuLabel className="border-b border  border-b-slate-900">
+                                    Actions
+                                  </DropdownMenuLabel>
+                                  <Link to={`/dashboard/books/edit/${book.id}`}>
+                                    <DropdownMenuItem>Edit</DropdownMenuItem>
                                   </Link>
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -238,8 +255,8 @@ const HomePage = () => {
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                           onClick={() => {
-                                            mutate(book._id);
-                                            setDeletingBookId(book._id);
+                                            mutate(book.id);
+                                            setDeletingBookId(book.id);
                                           }}
                                         >
                                           {isPending ? "Deleting..." : "Delete"}

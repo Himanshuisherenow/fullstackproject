@@ -7,17 +7,18 @@ import { config } from "./config/config";
 const cookieParser = require("cookie-parser");
 const app = express();
 
-const corsOptions = {
-  origin: config.allowOrigin, // need to change this
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  Credential: false,
-};
+// const corsOptions = {
+//   origin: config.allowOrigin, // need to change this
+//   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//   allowedHeaders: "Content-Type,Authorization",
+//   preflightContinue: false,
+//   optionsSuccessStatus: 204,
+//   Credential: false,
+// };
 
 // Use the CORS middleware
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

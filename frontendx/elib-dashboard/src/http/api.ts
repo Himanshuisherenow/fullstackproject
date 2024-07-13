@@ -1,9 +1,8 @@
 import axios, { AxiosResponse } from "axios";
 import useTokenStore from "@/store";
 import { Book } from "@/types";
-
+import { PaginatedResponse } from "@/pages/BooksPage";
 const api = axios.create({
-  // todo: move this value to env variable.
   baseURL: "http://localhost:7000",
   headers: {
     "Content-Type": "application/json",
@@ -18,15 +17,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const totalbooks = async () => {
-  try {
-    const response = await api.get("/api/books/count");
-
-    return response.data;
-  } catch (error) {
-    console.error("API error:", error);
-    throw error;
-  }
+export const totalbooks = async (): Promise<number> => {
+  const response: AxiosResponse<{ count: number }> = await api.get(
+    "/api/books/count"
+  );
+  return response.data.count;
 };
 export const login = async (data: { email: string; password: string }) =>
   api.post("/api/users/login", data);
@@ -37,13 +32,38 @@ export const register = async (data: {
   password: string;
 }) => api.post("/api/users/register", data);
 
-export const getBooks = async (): Promise<Book[]> => {
-  const response: AxiosResponse<Book[]> = await api.get("/api/books?type=all");
-  console.log(response.data);
+export const getBooks = async (
+  skip: number,
+  limit: number
+): Promise<PaginatedResponse<Book>> => {
+  const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
+    "/api/books",
+    {
+      params: {
+        type: "all",
+        limit,
+        skip,
+      },
+    }
+  );
   return response.data;
 };
-export const getBooksAuthor = async (): Promise<Book[]> => {
-  const response: AxiosResponse<Book[]> = await api.get("/api/books?type=user");
+export const getBooksAuthor = async (
+  skip: number = 0,
+  limit: number,
+  loadMore: boolean = true
+): Promise<PaginatedResponse<Book>> => {
+  const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
+    "/api/books",
+    {
+      params: {
+        type: "user",
+        limit,
+        skip,
+        loadMore,
+      },
+    }
+  );
   console.log(response.data);
   return response.data;
 };

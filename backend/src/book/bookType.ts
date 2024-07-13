@@ -1,6 +1,6 @@
 import { IUser } from "../user/userType";
 
-export interface IBook extends Document{
+export interface IBook extends Document {
   _id: string;
   title: string;
   description: string;
@@ -10,4 +10,11 @@ export interface IBook extends Document{
   file: string;
   createdAt: Date;
   updatedAt: Date;
+}
+export interface PaginatedBookResponse {
+  items: IBook[];
+  total: number;
+  skip: number;
+  limit: number;
+  hasMore: boolean;
 }
