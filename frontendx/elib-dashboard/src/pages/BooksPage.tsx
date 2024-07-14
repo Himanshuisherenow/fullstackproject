@@ -26,11 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import debounce from 'debounce';
 import { getBooks } from "@/http/api";
 import { Book } from "@/types";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ProperDate } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -44,20 +47,22 @@ const BooksPage = () => {
   const [searchParams, setSearchParams] = useSearchParams({
     skip: "0",
     limit: "8",
+    search: "",
   });
 
   const skip = parseInt(searchParams.get("skip") || "0");
   const limit = parseInt(searchParams.get("limit") || "8");
+  const search = searchParams.get("search") || "";
 
   const { data, isLoading, isError, error, isFetching } = useQuery<
     PaginatedResponse<Book>,
     Error
   >({
-    queryKey: ["books", skip, limit],
-    queryFn: () => getBooks(skip, limit),
+    queryKey: ["books", skip, limit,search],
+    queryFn: () => getBooks(skip, limit, search),
     placeholderData: keepPreviousData,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
+    staleTime:1000,
+  
   });
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
@@ -105,8 +110,29 @@ const BooksPage = () => {
     }
   };
 
+  function handleSearch(value: string) {
+    console.log(value)
+    setSearchParams((prev) => {   
+      prev.set("search", value);
+      return prev;
+    });
+  }
+
   return (
     <div>
+      <div className="w-full  mb-4 mx-auto  ">
+        <form className="">
+          <div className="relative mx-auto">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              onChange={(e) => handleSearch(e.target.value)}
+              type="search"
+              placeholder="Search products..."
+              className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+            />
+          </div>
+        </form>
+      </div>
       <div className="flex items-center justify-between">
         <Breadcrumb>
           <BreadcrumbList>

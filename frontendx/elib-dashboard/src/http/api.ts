@@ -8,6 +8,9 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+export interface BookCountResponse {
+  count: number;
+}
 
 api.interceptors.request.use((config) => {
   const token = useTokenStore.getState().token;
@@ -17,11 +20,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const totalbooks = async (): Promise<number> => {
+export const totalbooks = async (): Promise<BookCountResponse> => {
   const response: AxiosResponse<{ count: number }> = await api.get(
     "/api/books/count"
   );
-  return response.data.count;
+  return response.data;
 };
 export const login = async (data: { email: string; password: string }) =>
   api.post("/api/users/login", data);
@@ -34,7 +37,8 @@ export const register = async (data: {
 
 export const getBooks = async (
   skip: number,
-  limit: number
+  limit: number,
+  search: string
 ): Promise<PaginatedResponse<Book>> => {
   const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
     "/api/books",
@@ -43,29 +47,24 @@ export const getBooks = async (
         type: "all",
         limit,
         skip,
+        search,
       },
     }
   );
   return response.data;
 };
+
 export const getBooksAuthor = async (
-  skip: number = 0,
+  skip: number,
   limit: number,
-  loadMore: boolean = true
+  loadMore: boolean,
+  type: string
 ): Promise<PaginatedResponse<Book>> => {
-  const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
-    "/api/books",
-    {
-      params: {
-        type: "user",
-        limit,
-        skip,
-        loadMore,
-      },
-    }
-  );
-  console.log(response.data);
-  return response.data;
+  return axios
+    .get(
+      `/api/books?skip=${skip}&limit=${limit}&loadMore=${loadMore}&type=${type}`
+    )
+    .then((response) => response.data);
 };
 
 export const createBook = async (data: FormData) => {
