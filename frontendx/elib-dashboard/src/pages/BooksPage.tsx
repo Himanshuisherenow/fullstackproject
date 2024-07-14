@@ -110,10 +110,10 @@ const BooksPage = () => {
     }
   };
 
-  function handleSearch(value: string) {
-    console.log(value)
+  function handleSearch(e: { target: { value: string; }; }) {
+    console.log(e.target.value);
     setSearchParams((prev) => {   
-      prev.set("search", value);
+      prev.set("search", e.target.value);
       return prev;
     });
   }
@@ -125,7 +125,7 @@ const BooksPage = () => {
           <div className="relative mx-auto">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={ debounce(handleSearch,300)}
               type="search"
               placeholder="Search products..."
               className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
