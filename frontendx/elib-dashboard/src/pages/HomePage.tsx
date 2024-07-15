@@ -34,7 +34,6 @@ import {
 import { ProperDate } from "@/lib/utils";
 import { deleteBook, getBooksAuthor, totalbooks } from "@/http/api";
 
-// Type definitions
 interface Book {
   id: string;
   title: string;
@@ -58,7 +57,6 @@ interface PaginatedResponse {
 interface BookCountResponse {
   count: number;
 }
-
 const HomePage: React.FC = () => {
   const [deletingBookId, setDeletingBookId] = useState<string>("");
   const queryClient = useQueryClient();
@@ -66,13 +64,15 @@ const HomePage: React.FC = () => {
     skip: "0",
     limit: "8",
     loadMore: "false",
-    type: "all",
+    type: "user", // Changed to 'user' to fetch only logged-in user's books
   });
+
 
   const skip = parseInt(searchParams.get("skip") || "0");
   const limit = parseInt(searchParams.get("limit") || "8");
   const loadMore = searchParams.get("loadMore") === "true";
-  const type = searchParams.get("type") || "all";
+  const type = searchParams.get("type") || "user"; // Default to 'user'
+
 
   const { data: bookCountData, isLoading: isBookCountLoading, error: bookCountError } = useQuery<BookCountResponse, Error>({
     queryKey: ["bookCount"],

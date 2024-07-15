@@ -157,107 +157,88 @@ const listBooksAuthor = async (
       skip = "0",
       limit = "10",
       loadMore = "false",
+      search = "", // Added search query parameter
     } = req.query;
     const skipNumber = Math.max(0, parseInt(skip as string, 10) || 0);
     const limitNumber = Math.max(1, parseInt(limit as string, 10) || 10);
     const isLoadMore = loadMore === "true";
 
-    let query: mongoose.PipelineStage[];
-    let countQuery: mongoose.PipelineStage[];
+    let query: mongoose.PipelineStage[] = [];
+    let countQuery: mongoose.PipelineStage[] = [];
 
-    if (type === "user") {
-      query = [
-        {
+    const searchMatchStage = search
+      ? {
           $match: {
-            author: new mongoose.Types.ObjectId(userId),
+            $or: [
+              { title: { $regex: search, $options: "i" } },
+              { description: { $regex: search, $options: "i" } },
+              // Add other fields you want to search by
+            ],
           },
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "author",
-            foreignField: "_id",
-            as: "authorDetails",
-          },
-        },
-        {
-          $unwind: "$authorDetails",
-        },
-        {
-          $addFields: {
-            id: { $toString: "$_id" },
-            author: {
-              id: { $toString: "$authorDetails._id" },
-              name: "$authorDetails.name",
+        }
+      : null;
+
+    query = [
+      ...(type === "user"
+        ? [
+            {
+              $match: {
+                author: new mongoose.Types.ObjectId(userId),
+              },
             },
+          ]
+        : []),
+      ...(searchMatchStage ? [searchMatchStage] : []), // Conditionally include searchMatchStage
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "authorDetails",
+        },
+      },
+      {
+        $unwind: "$authorDetails",
+      },
+      {
+        $addFields: {
+          id: { $toString: "$_id" },
+          author: {
+            id: { $toString: "$authorDetails._id" },
+            name: "$authorDetails.name",
           },
         },
-        {
-          $project: {
-            _id: 0,
-            id: 1,
-            title: 1,
-            description: 1,
-            genre: 1,
-            author: 1,
-            coverImage: 1,
-            file: 1,
-            createdAt: 1,
-          },
+      },
+      {
+        $project: {
+          _id: 0,
+          id: 1,
+          title: 1,
+          description: 1,
+          genre: 1,
+          author: 1,
+          coverImage: 1,
+          file: 1,
+          createdAt: 1,
         },
-        { $skip: skipNumber },
-        { $limit: limitNumber + 1 }, // Fetch one extra to determine if there are more
-      ];
-      countQuery = [
-        {
-          $match: {
-            author: new mongoose.Types.ObjectId(userId),
-          },
-        },
-        { $count: "total" },
-      ];
-    } else if (type === "all") {
-      query = [
-        {
-          $lookup: {
-            from: "users",
-            localField: "author",
-            foreignField: "_id",
-            as: "authorDetails",
-          },
-        },
-        {
-          $unwind: "$authorDetails",
-        },
-        {
-          $addFields: {
-            id: { $toString: "$_id" },
-            author: {
-              id: { $toString: "$authorDetails._id" },
-              name: "$authorDetails.name",
+      },
+      { $skip: skipNumber },
+      { $limit: limitNumber + 1 }, // Fetch one extra to determine if there are more
+    ];
+
+    countQuery = [
+      ...(type === "user"
+        ? [
+            {
+              $match: {
+                author: new mongoose.Types.ObjectId(userId),
+              },
             },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            id: 1,
-            title: 1,
-            description: 1,
-            genre: 1,
-            author: 1,
-            coverImage: 1,
-            file: 1,
-            createdAt: 1,
-          },
-        },
-        { $skip: skipNumber },
-        { $limit: limitNumber + 1 },
-      ];
-      countQuery = [{ $count: "total" }];
-    } else {
-      return res.status(400).json({ error: "Invalid request type" });
-    }
+          ]
+        : []),
+      ...(searchMatchStage ? [searchMatchStage] : []), // Conditionally include searchMatchStage
+      { $count: "total" },
+    ];
 
     const [items, [{ total } = { total: 0 }]] = await Promise.all([
       Book.aggregate(query),

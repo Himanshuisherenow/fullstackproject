@@ -60,13 +60,16 @@ export const getBooksAuthor = async (
   loadMore: boolean,
   type: string
 ): Promise<PaginatedResponse<Book>> => {
-  return axios
-    .get(
-      `/api/books?skip=${skip}&limit=${limit}&loadMore=${loadMore}&type=${type}`
-    )
-    .then((response) => response.data);
+  const response = await axios.get("/api/books", {
+    params: {
+      skip,
+      limit,
+      loadMore,
+      type,
+    },
+  });
+  return response.data;
 };
-
 export const createBook = async (data: FormData) => {
   return api.post("/api/books", data, {
     headers: {
