@@ -1,5 +1,5 @@
 import mongoose, { Model } from "mongoose";
-import { IUser } from './userType';
+import { IUser } from "./userType";
 
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -20,4 +20,4 @@ const userSchema = new mongoose.Schema<IUser>(
   { timestamps: true }
 );
 
-export const User : Model<IUser>= mongoose.model<IUser>("User", userSchema);
+export const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);

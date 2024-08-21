@@ -32,25 +32,25 @@ import { Book } from "@/types";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ProperDate } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, Terminal } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   limit: number;
-  skip: number;
-  hasMore: boolean;
+  page: number;
 }
 
 const BooksPage = () => {
   const [searchParams, setSearchParams] = useSearchParams({
-    skip: "0",
+    page: "1",
     limit: "8",
     search: "",
   });
 
-  const skip = parseInt(searchParams.get("skip") || "0");
+  const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "8");
   const search = searchParams.get("search") || "";
 
@@ -58,24 +58,22 @@ const BooksPage = () => {
     PaginatedResponse<Book>,
     Error
   >({
-    queryKey: ["books", skip, limit,search],
-    queryFn: () => getBooks(skip, limit, search),
+    queryKey: ["books", page, limit, search],
+    queryFn: () => getBooks(page, limit, search),
     placeholderData: keepPreviousData,
     staleTime:1000,
   
   });
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
-  const currentPage = Math.floor(skip / limit) + 1;
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
 
   const handleMove = (direction: "next" | "prev") => {
     setSearchParams((prev) => {
-      const newSkip =
-        direction === "next" ? skip + limit : Math.max(skip - limit, 0);
-      prev.set("skip", newSkip.toString());
-      return prev;
-    });
-  };
+    const newPage = direction === "next" ? page + 1 : Math.max(page - 1, 1);
+    prev.set("page", newPage.toString());
+    return prev;
+  })}
 
   if (isLoading) return <div>Loading...</div>;
   if (isError) return <div>Error: {error.message}</div>;
@@ -146,8 +144,14 @@ const BooksPage = () => {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
+    
+    {data?.items.length === 0 ? (<div className="mt-10"><Alert>
+  <Terminal className="h-5 w-5" />
+  <AlertTitle className=" text-red-600 font font-bold">No books available what you search for</AlertTitle>
 
-      <Card className="mt-6">
+</Alert>
+</div>):
+     ( <Card className="mt-6">
         <CardHeader>
           <CardTitle>Books</CardTitle>
           <CardDescription>Manage your books.</CardDescription>
@@ -173,8 +177,8 @@ const BooksPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.items &&
-                data.items.map((book: Book) => {
+              { data?.items.length === 0 ? (<div>No books available</div>):
+                (data?.items.map((book: Book) => {
                   return (
                     <TableRow key={book.id}>
                       <TableCell className="hidden sm:table-cell">
@@ -210,7 +214,7 @@ const BooksPage = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }))}
             </TableBody>
           </Table>
         </CardContent>
@@ -244,9 +248,12 @@ const BooksPage = () => {
             </div>
           </CardFooter>
         </CardFooter>
-      </Card>
+      </Card>)}
     </div>
   );
 };
 
 export default BooksPage;
+
+      
+    

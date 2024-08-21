@@ -36,39 +36,55 @@ export const register = async (data: {
 }) => api.post("/api/users/register", data);
 
 export const getBooks = async (
-  skip: number,
+  page: number,
   limit: number,
   search: string
 ): Promise<PaginatedResponse<Book>> => {
-  const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
-    "/api/books",
-    {
-      params: {
-        type: "all",
-        limit,
-        skip,
-        search,
-      },
+  try {
+    const response: AxiosResponse<PaginatedResponse<Book>> = await api.get(
+      "/api/books",
+      {
+        params: {
+          type: "all",
+          limit,
+          page,
+          search,
+        },
+      }
+    );
+    if (response.status !== 200) {
+      throw new Error(`Request failed with status ${response.status}`);
     }
-  );
-  return response.data;
+    if (!response.data) {
+      throw new Error("Response data is empty");
+    }
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 };
 
 export const getBooksAuthor = async (
-  skip: number,
+  page: number,
   limit: number,
-  loadMore: boolean,
-  type: string
+  type: string,
+  search: string
 ): Promise<PaginatedResponse<Book>> => {
-  const response = await axios.get("/api/books", {
-    params: {
-      skip,
-      limit,
-      loadMore,
-      type,
-    },
-  });
-  return response.data;
+  try {
+    const response = await api.get<PaginatedResponse<Book>>("/api/books", {
+      params: {
+        page,
+        limit,
+        type,
+        search,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 };
 export const createBook = async (data: FormData) => {
   return api.post("/api/books", data, {

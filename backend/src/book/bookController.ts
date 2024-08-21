@@ -154,14 +154,13 @@ const listBooksAuthor = async (
     const userId = authReq.userId;
     const {
       type = "all",
-      skip = "0",
-      limit = "10",
-      loadMore = "false",
+      page = "1",
+      limit = "8",
       search = "", // Added search query parameter
     } = req.query;
-    const skipNumber = Math.max(0, parseInt(skip as string, 10) || 0);
-    const limitNumber = Math.max(1, parseInt(limit as string, 10) || 10);
-    const isLoadMore = loadMore === "true";
+
+    const pageNumber = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNumber = Math.max(1, parseInt(limit as string, 10) || 8);
 
     let query: mongoose.PipelineStage[] = [];
     let countQuery: mongoose.PipelineStage[] = [];
@@ -172,7 +171,9 @@ const listBooksAuthor = async (
             $or: [
               { title: { $regex: search, $options: "i" } },
               { description: { $regex: search, $options: "i" } },
-              // Add other fields you want to search by
+              { "author.name": { $regex: search, $options: "i" } },
+              { "author.email": { $regex: search, $options: "i" } },
+              { genre: { $regex: search, $options: "i" } },
             ],
           },
         }
@@ -222,8 +223,8 @@ const listBooksAuthor = async (
           createdAt: 1,
         },
       },
-      { $skip: skipNumber },
-      { $limit: limitNumber + 1 }, // Fetch one extra to determine if there are more
+      { $skip: (pageNumber - 1) * limitNumber },
+      { $limit: limitNumber }, // Fetch one extra to determine if there are more
     ];
 
     countQuery = [
@@ -245,17 +246,15 @@ const listBooksAuthor = async (
       Book.aggregate(countQuery),
     ]);
 
-    const hasMore = items.length > limitNumber;
     const resultItems = items.slice(0, limitNumber);
 
     const response: PaginatedBookResponse = {
       items: resultItems as IBook[],
-      total: isLoadMore ? undefined : total,
-      skip: skipNumber,
+      total,
+      page: pageNumber,
       limit: limitNumber,
-      hasMore,
     };
-
+    console.log(response);
     res.status(200).json(response);
   } catch (error) {
     next(error);

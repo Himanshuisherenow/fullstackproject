@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from "react-router-dom";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { CirclePlus, LoaderCircle, MoreHorizontal, Users } from "lucide-react";
+import { CirclePlus, LoaderCircle, MoreHorizontal, Search, Users } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ProperDate } from "@/lib/utils";
 import { deleteBook, getBooksAuthor, totalbooks } from "@/http/api";
+import { PaginatedResponse } from './BooksPage';
+import { Input } from '@/components/ui/input';
+import debounce from 'debounce';
 
 interface Book {
   id: string;
@@ -46,61 +49,59 @@ interface Book {
   createdAt: string;
 }
 
-interface PaginatedResponse {
-  items: Book[];
-  total?: number;
-  skip: number;
-  limit: number;
-  hasMore: boolean;
-}
-
 interface BookCountResponse {
   count: number;
 }
 const HomePage: React.FC = () => {
   const [deletingBookId, setDeletingBookId] = useState<string>("");
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams({
-    skip: "0",
-    limit: "8",
-    loadMore: "false",
-    type: "user", // Changed to 'user' to fetch only logged-in user's books
-  });
-
-
-  const skip = parseInt(searchParams.get("skip") || "0");
-  const limit = parseInt(searchParams.get("limit") || "8");
-  const loadMore = searchParams.get("loadMore") === "true";
-  const type = searchParams.get("type") || "user"; // Default to 'user'
-
-
+ 
   const { data: bookCountData, isLoading: isBookCountLoading, error: bookCountError } = useQuery<BookCountResponse, Error>({
     queryKey: ["bookCount"],
     queryFn: totalbooks,
   });
 
-  const fetchBooks = async ({ pageParam = 0 }) => {
-    return getBooksAuthor(pageParam, limit, loadMore, type);
-  };
-
-  const {
-    data: booksData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery<PaginatedResponse>({
-    queryKey: ['books', limit, loadMore, type],
-    queryFn: fetchBooks,
-    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.skip + lastPage.limit : undefined,
-    enabled: loadMore,
+  const [searchParams, setSearchParams] = useSearchParams({
+    page: "1",
+    limit: "8",
+    type: "user", 
+    search: "",
   });
+  
+  
 
-  const { data: paginatedBooksData } = useQuery<PaginatedResponse>({
-    queryKey: ['books', skip, limit, type],
-    queryFn: () => getBooksAuthor(skip, limit, loadMore, type),
-    enabled: !loadMore,
-  });
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "8");
+  const type = searchParams.get("type")||"user";
+  const search = searchParams.get("search") || "";
+
+
+
+  const {data : paginateData ,isFetching, isLoading} = useQuery({
+    queryKey: ["books", page, limit, type, search],
+    queryFn: () => getBooksAuthor(page, limit, type, search), 
+    placeholderData: keepPreviousData,
+  })
+
+  {isLoading && <LoaderCircle className="mx-auto" />}
+
+  const totalPages = paginateData?.items ? Math.ceil(paginateData.total / limit) : 0;
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+
+  const handleMove = (direction: "next" | "prev") => {
+    setSearchParams((prev) => {
+    const newPage = direction === "next" ? page + 1 : Math.max(page - 1, 1);
+    prev.set("page", newPage.toString());
+    return prev;
+  })}
+
+  function handleSearch(e: { target: { value: string; }; }) {
+    console.log(e.target.value);
+    setSearchParams((prev) => {   
+      prev.set("search", e.target.value);
+      return prev;
+    });
+  }
 
   const { mutate, isPending } = useMutation({
     mutationFn: deleteBook,
@@ -109,38 +110,22 @@ const HomePage: React.FC = () => {
     },
   });
 
-  if (status === 'error' || (status === 'loading' && !booksData)) return <div>Loading or Error fetching books</div>;
-
-  const books = loadMore 
-    ? booksData?.pages.flatMap(page => page.items) || []
-    : paginatedBooksData?.items || [];
-
-  const renderPagination = () => {
-    if (loadMore) return null;
-    const totalPages = Math.ceil((paginatedBooksData?.total || 0) / limit);
-    const currentPage = Math.floor(skip / limit) + 1;
-
-    return (
-      <div className="flex justify-center mt-4 space-x-2">
-        <Button
-          onClick={() => setSearchParams({ skip: String(Math.max(0, skip - limit)), limit: String(limit), loadMore: "false", type })}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </Button>
-        <span>{`Page ${currentPage} of ${totalPages}`}</span>
-        <Button
-          onClick={() => setSearchParams({ skip: String(skip + limit), limit: String(limit), loadMore: "false", type })}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </Button>
-      </div>
-    );
-  };
+ 
 
   return (  <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+    <form className="">
+          <div className="relative mx-auto">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              onChange={ debounce(handleSearch,300)}
+              type="search"
+              placeholder="Search products..."
+              className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+            />
+          </div>
+        </form> 
     <div className="flex min-h-screen w-full flex-col">
+    
       <main className="flex flex-1 flex-col gap-4 md:gap-6">
         <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           <Card>
@@ -182,9 +167,9 @@ const HomePage: React.FC = () => {
 
 
           <div className="mb-4">
-            <Button onClick={() => setSearchParams({ ...searchParams, loadMore: String(!loadMore) })}>
+            {/* <Button onClick={() => setSearchParams({ ...searchParams, loadMore: String(!loadMore) })}>
               {loadMore ? "Switch to Pagination" : "Switch to Infinite Loading"}
-            </Button>
+            </Button> */}
           </div>
 
           <Card className="xl:col-span-2">
@@ -204,7 +189,7 @@ const HomePage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-              {books.map((book: Book) => (
+              {paginateData?.items.map((book) => (
                   <TableRow
                     className={isPending && book.id === deletingBookId ? "opacity-40" : "hover:bg-muted/50"}
                     key={book.id}
@@ -272,17 +257,37 @@ const HomePage: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-            {loadMore && hasNextPage && (
-              <Button 
-                onClick={() => fetchNextPage()} 
-                disabled={isFetchingNextPage}
-                className="mt-4"
-              >
-                {isFetchingNextPage ? 'Loading more...' : 'Load More'}
-              </Button>
-            )}
-            {!loadMore && renderPagination()}
+            <div className="mx-auto w-full">
+
+              {isFetching && <span>Loading...</span>}
+            </div>
           </Card>
+<section className='flex justify-center'>
+<div className="flex items-center border-4 rounded-2xl ">
+                <Button
+                  onClick={() => handleMove("prev")}
+                  disabled={currentPage === 1}
+                  size="sm"
+                  className="bg-white ml-2 hover:bg-gray-100 text-gray-800"
+                >
+                  ← Prev
+                </Button>
+
+                <span className="text-center font-semibold text-slate-700 text-sm p-2">
+                  Page <span className=" border-slate-600">{currentPage} </span>
+                  of <span className=" border-slate-600">{totalPages}</span>
+                </span>
+                <Button
+                  onClick={() => handleMove("next")}
+                  disabled={currentPage === totalPages}
+                  size="sm"
+                  className="  text-gray-800  hover:bg-gray-100 bg-white mr-2"
+                >
+                  Next →
+                </Button>
+              </div>
+</section>
+          
         </main>
       </div>
     </main>
@@ -290,3 +295,6 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
+
+
+

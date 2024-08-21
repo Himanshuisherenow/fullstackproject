@@ -14,7 +14,6 @@ export interface IBook extends Document {
 export interface PaginatedBookResponse {
   items: IBook[];
   total: number;
-  skip: number;
+  page: number;
   limit: number;
-  hasMore: boolean;
 }
