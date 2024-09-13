@@ -14,7 +14,9 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const parsedToken = token.split(" ")[1];
-    const decoded = verify(parsedToken, config.jwtSecret as string)as { sub: string };
+    const decoded = verify(parsedToken, config.jwtSecret as string) as {
+      sub: string;
+    };
     const _req = req as AuthRequest;
     _req.userId = decoded.sub as string;
     console.log(`Authenticated user with ID: ${_req.userId}`);

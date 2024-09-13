@@ -11,6 +11,10 @@ interface ConfigType {
   jwtSecret: string;
   env: string;
   salt_length: string;
+  refreshTokenSecret: string;
+  accessTokenSecret: string;
+  accessTokenExpiry: string;
+  refreshTokenExpiry: string;
 }
 function Config(): ConfigType {
   const port = process.env.PORT;
@@ -22,7 +26,23 @@ function Config(): ConfigType {
   const jwtSecret = process.env.JWT_SECRET;
   const env = process.env.NODE_ENV;
   const salt_length = process.env.SALT_LENGTH;
+  const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+  const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+  const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY;
+  const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY;
 
+  if (!refreshTokenExpiry) {
+    throw new Error("Error: refreshTokenExpiry is not defined.");
+  }
+  if (!accessTokenExpiry) {
+    throw new Error("Error: accessTokenExpiry is not defined.");
+  }
+  if (!refreshTokenSecret) {
+    throw new Error("Error: refreshTokenSecret is not defined.");
+  }
+  if (!accessTokenSecret) {
+    throw new Error("Error: accessTokenSecret is not defined.");
+  }
   if (!port) {
     throw new Error("Error: PORT is not defined.");
   }
@@ -60,6 +80,10 @@ function Config(): ConfigType {
     jwtSecret,
     env,
     salt_length,
+    refreshTokenSecret,
+    accessTokenSecret,
+    accessTokenExpiry,
+    refreshTokenExpiry,
   };
 }
 
