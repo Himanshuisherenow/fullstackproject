@@ -1,29 +1,48 @@
 import { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
-import { verify } from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../config/config";
+import { User } from "../user/userModel";
+import { CustomJwtPayload, IUser } from "../user/userType";
 
 export interface AuthRequest extends Request {
-  userId: string;
+  userId?: IUser;
 }
-const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header("Authorization");
+const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const token: string =
+    req.cookies?.accessToken ||
+    req.header("Authorization")?.replace("Bearer", "");
+
   if (!token) {
     return next(createHttpError(401, "Authorization token is required."));
   }
-
   try {
-    const parsedToken = token.split(" ")[1];
-    const decoded = verify(parsedToken, config.jwtSecret as string) as {
-      sub: string;
-    };
-    const _req = req as AuthRequest;
-    _req.userId = decoded.sub as string;
-    console.log(`Authenticated user with ID: ${_req.userId}`);
+    const decodedToken = jwt.verify(
+      token,
+      config.accessTokenSecret
+    ) as CustomJwtPayload;
+
+    const user = await User.findById(decodedToken._id).select(
+      "-password -refreshToken"
+    );
+
+    if (!user) {
+      return next(createHttpError(401, "Invalid Access Token"));
+    }
+
+    (req as AuthRequest).userId = user;
+
     next();
   } catch (err) {
-    return next(createHttpError(401, "Token expired."));
+    if (err instanceof jwt.JsonWebTokenError) {
+      return next(createHttpError(401, "Invalid Access Token"));
+    } else {
+      return next(createHttpError(500, "Internal Server Error"));
+    }
   }
 };
-
 export default authenticate;

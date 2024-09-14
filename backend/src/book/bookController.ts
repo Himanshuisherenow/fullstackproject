@@ -29,7 +29,6 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
   );
 
   try {
-    // Upload cover image to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(filePath, {
       filename_override: coverImageFile.filename,
       folder: "book-covers",
@@ -84,7 +83,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 
   // Check access
   const _req = req as AuthRequest;
-  if (book.author.toString() !== _req.userId) {
+  if (book.author.toString() !== _req.userId?._id) {
     return next(createHttpError(403, "You can not update others book."));
   }
 
@@ -184,7 +183,7 @@ const listBooksAuthor = async (
         ? [
             {
               $match: {
-                author: new mongoose.Types.ObjectId(userId),
+                author: new mongoose.Types.ObjectId(userId?._id),
               },
             },
           ]
@@ -232,7 +231,7 @@ const listBooksAuthor = async (
         ? [
             {
               $match: {
-                author: new mongoose.Types.ObjectId(userId),
+                author: new mongoose.Types.ObjectId(userId?._id),
               },
             },
           ]
@@ -273,7 +272,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   }
 
   const _req = req as AuthRequest;
-  if (book.author.toString() !== _req.userId) {
+  if (book.author.toString() !== _req.userId?._id) {
     return next(createHttpError(403, "You can not delete others book."));
   }
 
